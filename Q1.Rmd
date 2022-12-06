@@ -1,0 +1,96 @@
+---
+title: "Final"
+author: "정영민"
+date: "`r format(Sys.Date())`"
+subtitle: "Final exam"
+output:
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    fig_height: 6
+    fig_width: 10
+    toc: no
+  word_document:
+    fig_height: 6
+    fig_width: 9
+    toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1. Table 1 만들기
+
+### 필요한 library 및 데이터 불러오기
+
+```{r}
+library(tableone);library(data.table);library(magrittr);library(survival);library(jstable)
+
+url <- "https://raw.githubusercontent.com/jinseob2kim/lecture-snuhlab/master/data/example_g1e.csv"
+dt <- fread(url, header=T)
+```
+
+```{r}
+head(dt)
+```
+
+### Table 만들기 
+
+데이터(dt)의 연도 별 주어진 변수의 기술통계량을 Table로 나타내어라. 단, 변수 Q_SMK_YN과 Q_HBV_AG는 범주형으로.
+
+주어진 변수 : “HGHT”, “WGHT”, “BMI”, “HDL”, “LDL”, “Q_SMK_YN”, “Q_HBV_AG” (총 7개)
+
+```{r}
+# myVars : 주어진 변수 추출
+myVars <- c("HGHT","WGHT","BMI","HDL","LDL", "Q_SMK_YN","Q_HBV_AG")
+
+# catVars : 주어진 변수 중 범주형 변수(categorical variables) 추출
+catVars <- c("Q_SMK_YN","Q_HBV_AG")
+
+dt[, (catVars) := lapply(.SD, factor), .SDcols= catVars]
+
+CreateTableOne(vars= myVars, strata= "EXMD_BZ_YYYY", data= dt)
+```
+
+## Q2. 선형회귀, 로지스틱, 콕스생존분석 Table 만들기
+
+### 2-1. 선형 회귀분석(Linear regression)
+- survival 패키지에 내장되어 있는 대장암 데이터 ‘colon’ 사용
+- time ~ rx + age + sex 선형회귀 실행 후 table로 나타내어라.
+
+```{r}
+head(colon)
+```
+
+```{r}
+res.reg <- glm(time ~ rx + age + sex, data = colon)
+tb.reg <- glmshow.display(res.reg)     # 'jstable 패키지의 glmshow.display' 이용
+knitr::kable(tb.reg$table, caption = tb.reg$first.line)
+```
+
+
+### 2-2. 로지스틱 회귀분석(Logistic regression)
+- 마찬가지로 대장암 데이터 ‘colon’ 사용
+- status ~ rx + age + sex 로지스틱 회귀 실행 후 table로 나타내어라.
+
+```{r}
+res.logistic <- glm(status ~ rx + age + sex, data = colon, family = binomial)
+tb.logistic <- glmshow.display(res.logistic)   # 'jstable 패키지의 glmshow.display' 이용
+knitr::kable(tb.logistic$table, caption = tb.logistic$first.line)
+```
+
+### 2-3. 콕스 생존분석(Cox proportional hazard)
+- Surv(time, status) ~ rx + age + sex 실행 후 table로 나태내어라.
+
+```{r}
+res.cox <- coxph(Surv(time, status) ~ rx + age + sex, data = colon, model = T)
+tb.cox <- cox2.display(res.cox)   # 'jstable 패키지의 cox2.display' 이용
+knitr::kable(tb.cox$table, caption = tb.cox$caption)
+```
